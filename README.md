@@ -26,9 +26,10 @@ Dagster runs the whole chain every 15 minutes: load the last hour of files (alre
 ## Running everything
 
 ```bash
-docker compose build
-docker compose up dagster dashboard
+docker compose up --build dagster dashboard
 ```
+
+Compose also rebuilds on its own (`pull_policy: build`), so after a `git pull` you always run the current dependencies. If something still looks stale, run `docker compose build --no-cache`.
 
 - Dagster UI: http://localhost:3000 (the 15 minute schedule starts on its own; set `SCHEDULE_ON=0` to keep it off)
 - Dashboard: http://localhost:8501

@@ -9,7 +9,8 @@ WORKDIR /app
 # Install dependencies first so code edits don't redo this slow layer.
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
-RUN pip install -e ".[bigquery,dbt,orchestration,dashboard,dev]"
+RUN pip install -e ".[bigquery,dbt,orchestration,dashboard,dev]" \
+    && dagster --version && streamlit --version && dbt --version
 
 COPY . .
 
