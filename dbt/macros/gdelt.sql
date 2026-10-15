@@ -23,3 +23,12 @@
     {{ return(none) }}
   {%- endif -%}
 {%- endmacro %}
+
+{# First capture group of a regex. BigQuery returns the group by default. #}
+{% macro regex_group(expr, pattern) -%}
+  {%- if target.type == 'bigquery' -%}
+    regexp_extract({{ expr }}, r'{{ pattern }}')
+  {%- else -%}
+    regexp_extract({{ expr }}, '{{ pattern }}', 1)
+  {%- endif -%}
+{%- endmacro %}

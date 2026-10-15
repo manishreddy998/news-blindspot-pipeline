@@ -1,16 +1,18 @@
 -- Coverage split by lean for each story, and a blindspot flag.
 --
--- An article counts once per story even if it mentions several of its events.
+-- An article counts once per story even if it mentions several of its events,
+-- and copies of one syndicated article count once per lean.
 -- Center articles are counted and shown but the flag only compares left and
 -- right, since a blindspot means one side is barely covering the story.
 with counts as (
     select
         story_id,
-        count(*) as total_articles,
-        sum(case when lean is not null then 1 else 0 end) as rated_articles,
-        sum(case when lean = 'left' then 1 else 0 end) as left_articles,
-        sum(case when lean = 'center' then 1 else 0 end) as center_articles,
-        sum(case when lean = 'right' then 1 else 0 end) as right_articles
+        count(distinct article_url) as total_articles,
+        count(distinct copy_key) as unique_articles,
+        count(distinct case when lean is not null then lean || copy_key end) as rated_articles,
+        count(distinct case when lean = 'left' then copy_key end) as left_articles,
+        count(distinct case when lean = 'center' then copy_key end) as center_articles,
+        count(distinct case when lean = 'right' then copy_key end) as right_articles
     from {{ ref('story_articles') }}
     group by 1
 ),
@@ -31,6 +33,7 @@ select
     st.action_place,
     st.event_root_code,
     s.total_articles,
+    s.unique_articles,
     s.rated_articles,
     s.left_articles,
     s.center_articles,
