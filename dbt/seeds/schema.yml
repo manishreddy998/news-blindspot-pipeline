@@ -13,5 +13,6 @@ seeds:
       - name: lean
         tests:
           - accepted_values:
-              values: [left, center, right]
+              arguments:
+                values: [left, center, right]
       - name: rating_source
