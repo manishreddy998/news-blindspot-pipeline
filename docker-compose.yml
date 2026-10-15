@@ -1,0 +1,17 @@
+services:
+  pipeline:
+    build: .
+    image: news-blindspot-pipeline
+    working_dir: /app
+    environment:
+      WAREHOUSE: ${WAREHOUSE:-duckdb}
+      GCP_PROJECT: ${GCP_PROJECT:-}
+      BQ_DATASET: ${BQ_DATASET:-raw_gdelt}
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcp.json
+      DUCKDB_PATH: /app/data/blindspot.duckdb
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+      - ./tests:/app/tests
+      # Point GCP_KEY_PATH at your key on the host. It is mounted read only and never copied into the image.
+      - ${GCP_KEY_PATH:-./docker/no-gcp-key}:/secrets/gcp.json:ro

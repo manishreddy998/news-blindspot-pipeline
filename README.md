@@ -6,7 +6,29 @@ It pulls public news data from [GDELT](https://www.gdeltproject.org/), groups ar
 
 **Status:** work in progress. Pieces get added one at a time.
 
-## Running the ingest
+## Running with Docker (recommended)
+
+You only need Docker Desktop. Nothing gets installed on your machine.
+
+```bash
+docker compose build
+docker compose run --rm pipeline pytest
+docker compose run --rm pipeline python -m blindspot.ingest.load_gdelt --hours 24
+```
+
+Data lands in `./data` on your machine, so it survives between runs.
+
+To load into BigQuery, point `GCP_KEY_PATH` at your service account key. It is mounted read only at `/secrets/gcp.json` and never copied into the image.
+
+```bash
+export GCP_KEY_PATH=$HOME/.secrets/gcp-groundnews.json
+WAREHOUSE=bigquery GCP_PROJECT=groundnews-prototype \
+  docker compose run --rm pipeline python -m blindspot.ingest.load_gdelt --hours 24
+```
+
+Rebuild after pulling changes that touch `pyproject.toml`: `docker compose build`.
+
+## Running the ingest without Docker
 
 ```bash
 pip install -e ".[dev]"

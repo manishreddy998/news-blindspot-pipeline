@@ -1,0 +1,14 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+data
+*.json
+.env
+.env.*
+*.pem
+dbt/target
+dbt/logs
+dbt/dbt_packages
