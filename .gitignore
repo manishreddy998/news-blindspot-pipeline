@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets and credentials
+.env
+.env.*
+*.json
+!package.json
+credentials/
+*.pem
+
+# Data
+data/raw/
+data/*.duckdb
+data/*.duckdb.wal
+
+# dbt
+target/
+dbt_packages/
+logs/
+
+.DS_Store
