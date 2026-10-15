@@ -28,6 +28,16 @@ WAREHOUSE=bigquery GCP_PROJECT=groundnews-prototype \
 
 Rebuild after pulling changes that touch `pyproject.toml`: `docker compose build`.
 
+## Building the story models (dbt)
+
+```bash
+docker compose run --rm -w /app/dbt pipeline dbt build --profiles-dir .
+```
+
+This turns the raw tables into `stories` and `story_blindspots`. For BigQuery, set `GCP_KEY_PATH` as above and run it with `DBT_TARGET=bigquery GCP_PROJECT=groundnews-prototype` in front. Models land in the `analytics` dataset, with staging tables split into daily partitions.
+
+Note: `dbt/seeds/outlet_bias.csv` is example data so the joins have something to work with. It is not a real bias rating and should be replaced with a licensed source before anyone reads the results as fact.
+
 ## Running the ingest without Docker
 
 ```bash

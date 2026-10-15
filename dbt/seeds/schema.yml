@@ -1,0 +1,17 @@
+version: 2
+
+seeds:
+  - name: outlet_bias
+    description: >
+      EXAMPLE DATA ONLY. A small hand made list so the models have something to
+      join on. These leans are rough placeholders, not taken from any rating
+      service, and must not be quoted as real ratings. Swap in a licensed source
+      (for example AllSides or Ad Fontes Media) and set rating_source to its name.
+    columns:
+      - name: domain
+        tests: [unique, not_null]
+      - name: lean
+        tests:
+          - accepted_values:
+              values: [left, center, right]
+      - name: rating_source

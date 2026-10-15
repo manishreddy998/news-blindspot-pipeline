@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: stories
+    columns:
+      - name: story_id
+        tests: [unique, not_null]
+  - name: story_blindspots
+    columns:
+      - name: story_id
+        tests: [unique, not_null]

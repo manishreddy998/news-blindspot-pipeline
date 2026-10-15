@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: gdelt
+    # The loader writes to main in DuckDB and to the raw_gdelt dataset in BigQuery.
+    schema: "{{ 'raw_gdelt' if target.type == 'bigquery' else 'main' }}"
+    tables:
+      - name: raw_gdelt_events
+      - name: raw_gdelt_mentions

@@ -1,0 +1,31 @@
+name: blindspot
+version: "0.1.0"
+config-version: 2
+profile: blindspot
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+target-path: target
+clean-targets: [target, dbt_packages]
+
+vars:
+  # A story needs at least this many articles from rated outlets before we score it.
+  min_rated_articles: 5
+  # Flag a blindspot when one side has this share of the left plus right coverage.
+  blindspot_threshold: 0.8
+
+models:
+  blindspot:
+    staging:
+      +materialized: table
+    stories:
+      +materialized: table
+
+seeds:
+  blindspot:
+    outlet_bias:
+      +column_types:
+        domain: "{{ 'string' if target.type == 'bigquery' else 'varchar' }}"
+        lean: "{{ 'string' if target.type == 'bigquery' else 'varchar' }}"
+        rating_source: "{{ 'string' if target.type == 'bigquery' else 'varchar' }}"
