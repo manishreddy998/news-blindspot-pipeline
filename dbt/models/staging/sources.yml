@@ -4,6 +4,15 @@ sources:
   - name: gdelt
     # The loader writes to main in DuckDB and to the raw_gdelt dataset in BigQuery.
     schema: "{{ 'raw_gdelt' if target.type == 'bigquery' else 'main' }}"
+    config:
+      # GDELT publishes every 15 minutes, so data older than this means the loader stopped.
+      freshness:
+        warn_after: {count: 2, period: hour}
+        error_after: {count: 6, period: hour}
     tables:
       - name: raw_gdelt_events
+        config:
+          loaded_at_field: "{{ \"parse_timestamp('%Y%m%d%H%M%S', cast(DateAdded as string))\" if target.type == 'bigquery' else \"strptime(cast(DateAdded as varchar), '%Y%m%d%H%M%S')\" }}"
       - name: raw_gdelt_mentions
+        config:
+          loaded_at_field: "{{ \"parse_timestamp('%Y%m%d%H%M%S', cast(MentionTimeDate as string))\" if target.type == 'bigquery' else \"strptime(cast(MentionTimeDate as varchar), '%Y%m%d%H%M%S')\" }}"
