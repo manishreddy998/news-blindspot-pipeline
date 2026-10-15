@@ -10,6 +10,7 @@ dependencies = [
 
 [project.optional-dependencies]
 bigquery = ["google-cloud-bigquery>=3.20"]
+dbt = ["dbt-core>=1.10,<1.11", "dbt-duckdb>=1.9,<1.11", "dbt-bigquery>=1.10,<1.11"]
 dev = ["pytest>=8"]
 
 [tool.pytest.ini_options]
