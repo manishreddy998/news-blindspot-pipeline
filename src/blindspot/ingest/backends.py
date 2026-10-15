@@ -69,7 +69,12 @@ class DuckDBBackend:
 
 
 class BigQueryBackend:
-    """Same contract as DuckDBBackend. Not exercised until credentials exist."""
+    """Same contract as DuckDBBackend.
+
+    BigQuery has no multi statement transaction here, so the order matters: delete the
+    file's rows, load, then write the manifest. If a run dies in the middle the file is
+    not in the manifest yet, so the next run deletes and loads it again.
+    """
 
     def __init__(self, project: str, dataset: str, location: str = "US"):
         from google.cloud import bigquery
@@ -91,9 +96,10 @@ class BigQueryBackend:
         bq = self.bq
         fq = f"{self.dataset}.{table}"
         fields = [bq.SchemaField(n, t) for n, t in schema + LINEAGE]
-        self.client.create_table(
-            bq.Table(fq, schema=fields), exists_ok=True
-        )
+        t = bq.Table(fq, schema=fields)
+        # Clustering on source_file keeps the per-file DELETE below from scanning the whole table.
+        t.clustering_fields = ["source_file"]
+        self.client.create_table(t, exists_ok=True)
         self.client.query(
             f"DELETE FROM `{fq}` WHERE source_file = @f",
             job_config=bq.QueryJobConfig(query_parameters=[bq.ScalarQueryParameter("f", "STRING", source_file)]),
@@ -112,10 +118,16 @@ class BigQueryBackend:
             tsv.unlink(missing_ok=True)
         n = job.output_rows or 0
         rejected = len(rows) - n
-        self.client.insert_rows_json(self.manifest, [{
-            "file_name": source_file, "table_name": table, "row_count": n,
-            "rejected_rows": rejected, "loaded_at": datetime.now(timezone.utc).isoformat(),
-        }])
+        # A DML insert, not insert_rows_json: streamed rows sit in a buffer for a while
+        # and can't be deleted or updated, which would break a manifest cleanup later.
+        P = bq.ScalarQueryParameter
+        self.client.query(
+            f"INSERT INTO `{self.manifest}` VALUES (@f, @t, @n, @r, CURRENT_TIMESTAMP())",
+            job_config=bq.QueryJobConfig(query_parameters=[
+                P("f", "STRING", source_file), P("t", "STRING", table),
+                P("n", "INT64", n), P("r", "INT64", rejected),
+            ]),
+        ).result()
         return n, rejected
 
     def count(self, table: str) -> int:
