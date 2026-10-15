@@ -1,6 +1,8 @@
 x-pipeline: &pipeline
   build: .
   image: news-blindspot-pipeline
+  # Build on every up/run so a git pull that changes dependencies never runs an old image.
+  pull_policy: build
   working_dir: /app
   environment:
     WAREHOUSE: ${WAREHOUSE:-duckdb}
@@ -11,6 +13,8 @@ x-pipeline: &pipeline
     SCHEDULE_ON: ${SCHEDULE_ON:-1}
     GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcp.json
     DUCKDB_PATH: /app/data/blindspot.duckdb
+    DAGSTER_HOME: /app/data/dagster
+    DBT_PROJECT_DIR: /app/dbt
   volumes:
     - ./data:/app/data
     - ./src:/app/src
@@ -26,7 +30,7 @@ services:
 
   dagster:
     <<: *pipeline
-    command: sh -c "mkdir -p $$DAGSTER_HOME && dagster dev -h 0.0.0.0 -p 3000 -m blindspot.orchestration.definitions"
+    command: sh -c "mkdir -p $${DAGSTER_HOME:-/app/data/dagster} && dagster dev -h 0.0.0.0 -p 3000 -m blindspot.orchestration.definitions"
     ports:
       - "3000:3000"
 
