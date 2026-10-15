@@ -11,6 +11,8 @@ dependencies = [
 [project.optional-dependencies]
 bigquery = ["google-cloud-bigquery>=3.20"]
 dbt = ["dbt-core>=1.11,<1.12", "dbt-duckdb>=1.9", "dbt-bigquery>=1.10"]
+orchestration = ["dagster>=1.8", "dagster-webserver>=1.8"]
+dashboard = ["streamlit>=1.38", "pandas>=2.2"]
 dev = ["pytest>=8"]
 
 [tool.pytest.ini_options]

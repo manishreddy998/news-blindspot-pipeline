@@ -6,6 +6,44 @@ It pulls public news data from [GDELT](https://www.gdeltproject.org/), groups ar
 
 **Status:** work in progress. Pieces get added one at a time.
 
+## How it fits together
+
+```mermaid
+flowchart LR
+    G[GDELT 2.0<br/>15 minute files] -->|load_gdelt<br/>file manifest| R[(raw_gdelt<br/>DuckDB or BigQuery)]
+    R -->|dbt staging| S[stg events, mentions,<br/>article copies]
+    S -->|dbt| ST[stories]
+    B[outlet_bias seed<br/>example data] --> SB
+    ST --> SB[story_blindspots]
+    SB --> Q{quality check}
+    Q --> SU[story_summaries<br/>extractive or Gemini]
+    SU --> D[Streamlit dashboard]
+    O[Dagster schedule<br/>every 15 min] -.runs.-> G
+```
+
+Dagster runs the whole chain every 15 minutes: load the last hour of files (already loaded files are skipped), `dbt build` with its tests, the Python quality check, then summaries. If any step fails, the later ones don't run.
+
+## Running everything
+
+```bash
+docker compose build
+docker compose up dagster dashboard
+```
+
+- Dagster UI: http://localhost:3000 (the 15 minute schedule starts on its own; set `SCHEDULE_ON=0` to keep it off)
+- Dashboard: http://localhost:8501
+
+Stop with Ctrl+C, then `docker compose down`.
+
+One off commands:
+
+```bash
+docker compose run --rm pipeline python -m blindspot.quality.check
+docker compose run --rm pipeline python -m blindspot.summaries.run --top 20
+```
+
+Summaries default to an extractive method built from article headlines. `SUMMARY_MODE=vertex` uses Gemini on Vertex AI if the API is enabled in your project, and falls back to extractive if the call fails.
+
 ## Running with Docker (recommended)
 
 You only need Docker Desktop. Nothing gets installed on your machine.
