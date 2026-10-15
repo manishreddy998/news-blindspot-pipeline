@@ -9,9 +9,12 @@ WORKDIR /app
 # Install dependencies first so code edits don't redo this slow layer.
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
-RUN pip install -e ".[bigquery,dbt,dev]"
+RUN pip install -e ".[bigquery,dbt,orchestration,dashboard,dev]"
 
 COPY . .
+
+ENV DAGSTER_HOME=/app/data/dagster DBT_PROJECT_DIR=/app/dbt
+EXPOSE 3000 8501
 
 # Credentials are mounted at run time, never baked into the image.
 CMD ["python", "-m", "blindspot.ingest.load_gdelt", "--hours", "24"]
