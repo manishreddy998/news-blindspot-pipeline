@@ -10,10 +10,13 @@ target-path: target
 clean-targets: [target, dbt_packages]
 
 vars:
-  # A story needs at least this many articles from rated outlets before we score it.
-  min_rated_articles: 5
+  # A story needs at least this many left plus right articles before it can be flagged.
+  # Center coverage alone can't show that one side is missing.
+  min_sided_articles: 4
   # Flag a blindspot when one side has this share of the left plus right coverage.
   blindspot_threshold: 0.8
+  # z for the Wilson interval on the dominant side's share (1.96 = 95%).
+  wilson_z: 1.96
   # Audience score cut offs for the lean buckets. Scores between them count as center.
   lean_left_max: -0.2
   lean_right_min: 0.2
