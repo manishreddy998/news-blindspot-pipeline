@@ -44,6 +44,7 @@ select c.copy_key, min(c.article_url) as sample_url, min(m.mentioned_at) as firs
 from {mart}.stg_article_copies c
 join {mart}.stg_gdelt_mentions m on m.article_url = c.article_url
 group by 1
+order by 1
 """
 
 COLUMNS = [("copy_key", "STRING"), ("story_id", "STRING"), ("headline", "STRING"),
