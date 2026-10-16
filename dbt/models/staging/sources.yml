@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: gdelt
     # The loader writes to main in DuckDB and to the raw_gdelt dataset in BigQuery.
-    schema: "{{ 'raw_gdelt' if target.type == 'bigquery' else 'main' }}"
+    schema: "{{ env_var('BQ_DATASET', 'raw_gdelt') if target.type == 'bigquery' else 'main' }}"
     config:
       # GDELT publishes every 15 minutes, so data older than this means the loader stopped.
       freshness:

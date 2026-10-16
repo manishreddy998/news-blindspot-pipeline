@@ -31,7 +31,7 @@ def _runner():
 
         project = os.environ["GCP_PROJECT"]
         client = bigquery.Client(project=project)
-        names = {"raw": f"`{project}.raw_gdelt`", "mart": f"`{project}.analytics`"}
+        names = {"raw": f"`{project}.{os.getenv('BQ_DATASET', 'raw_gdelt')}`", "mart": f"`{project}.analytics`"}
 
         def run(sql):
             return list(client.query(sql.format(**names)).result())[0][0]
