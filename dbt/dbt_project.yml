@@ -14,6 +14,9 @@ vars:
   min_rated_articles: 5
   # Flag a blindspot when one side has this share of the left plus right coverage.
   blindspot_threshold: 0.8
+  # Audience score cut offs for the lean buckets. Scores between them count as center.
+  lean_left_max: -0.2
+  lean_right_min: 0.2
 
 models:
   blindspot:
@@ -22,10 +25,3 @@ models:
     stories:
       +materialized: table
 
-seeds:
-  blindspot:
-    outlet_bias:
-      +column_types:
-        domain: "{{ 'string' if target.type == 'bigquery' else 'varchar' }}"
-        lean: "{{ 'string' if target.type == 'bigquery' else 'varchar' }}"
-        rating_source: "{{ 'string' if target.type == 'bigquery' else 'varchar' }}"
