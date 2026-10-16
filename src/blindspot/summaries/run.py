@@ -20,7 +20,7 @@ select story_id, story_day, headline, actors, action_place, unique_articles, rat
        left_articles, center_articles, right_articles, blindspot_score, is_blindspot, blindspot_for
 from {mart}.story_blindspots
 where grouped_by = 'headline'
-order by is_blindspot desc, unique_articles desc
+order by is_blindspot desc, unique_articles desc, story_id
 limit {top}
 """
 # Every headline in each story, from the clustering step.
