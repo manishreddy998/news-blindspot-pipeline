@@ -52,6 +52,8 @@ c3.metric("Latest GDELT file", str(meta.last_file)[:12])
 
 min_rated = st.sidebar.slider("Min articles from rated outlets", 0, 30, 4)
 only_flags = st.sidebar.checkbox("Only blindspots", value=False)
+# Only stories grouped by headline. Event grouped leftovers have no headline to check.
+stories = stories[stories.grouped_by == "headline"]
 view = stories[stories.rated_articles >= min_rated]
 if only_flags:
     view = view[view.is_blindspot]
@@ -60,7 +62,8 @@ st.subheader("Blindspots")
 flags = stories[stories.is_blindspot].sort_values(["dominant_share_low", "sided_articles"], ascending=False).head(10)
 for _, r in flags.iterrows():
     side = "the left" if r.blindspot_for == "left" else "the right"
-    label = r.summary if isinstance(r.summary, str) else f"{r.actors or 'Unnamed'} in {r.action_place or 'unknown place'}"
+    label = r.summary if isinstance(r.summary, str) else (
+        r.headline if isinstance(r.headline, str) else f"{r.actors or 'Unnamed'} in {r.action_place or 'unknown place'}")
     st.markdown(f"**{label}**  \n"
                 f"Blindspot for {side}: left {r.left_articles}, center {r.center_articles}, right {r.right_articles}"
                 f" · {r.dominant_share:.0%} one side (95% low end {r.dominant_share_low:.0%}, {r.confidence})")
@@ -68,7 +71,7 @@ for _, r in flags.iterrows():
 st.subheader("Coverage split for top stories")
 top = view.head(15).copy()
 fallback = top.actors.fillna("").replace("", "Unnamed") + " / " + top.action_place.fillna("unknown place")
-top["label"] = top.summary.fillna(fallback).str.split(".").str[0].str.slice(0, 60)
+top["label"] = top.headline.fillna(top.summary.str.split(".").str[0]).fillna(fallback).str.slice(0, 60)
 split = top.set_index("label")[["left_articles", "center_articles", "right_articles"]]
 split.columns = ["left", "center", "right"]
 st.bar_chart(split, horizontal=True, color=["#3b6fd8", "#9a9a9a", "#d8433b"])

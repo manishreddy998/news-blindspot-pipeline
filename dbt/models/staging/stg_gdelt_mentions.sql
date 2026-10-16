@@ -12,4 +12,4 @@ from {{ source('gdelt', 'raw_gdelt_mentions') }}
 where MentionType = 1
   and MentionSourceName is not null
   and MentionIdentifier is not null
-qualify row_number() over (partition by GlobalEventID, MentionIdentifier order by MentionTimeDate) = 1
+qualify row_number() over (partition by GlobalEventID, MentionIdentifier order by MentionTimeDate, MentionSourceName, Confidence desc) = 1

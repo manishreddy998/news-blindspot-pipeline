@@ -21,4 +21,4 @@ select
     SourceURL as source_url
 from {{ source('gdelt', 'raw_gdelt_events') }}
 where GlobalEventID is not null
-qualify row_number() over (partition by GlobalEventID order by DateAdded desc) = 1
+qualify row_number() over (partition by GlobalEventID order by DateAdded desc, source_file desc, SourceURL) = 1
