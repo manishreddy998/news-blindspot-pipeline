@@ -9,7 +9,7 @@ import re
 from collections import Counter
 
 # Numbers, hex IDs (uuid chunks like 8d11) and file endings are not headline words.
-_ID_BITS = re.compile(r"^[0-9a-f]*\d[0-9a-f]*$|^[0-9a-f]{8,}$|^(html?|php|aspx?|amp|article|story|news)$")
+_ID_BITS = re.compile(r"^[0-9a-f]*\d[0-9a-f]*$|^[a-z]{0,2}\d{4,}[a-z]?$|^[0-9a-f]{8,}$|^(html?|php|aspx?|amp|article|story|news)$")
 _STOP = {"the", "a", "an", "of", "to", "in", "on", "for", "and", "or", "at", "by", "with", "is", "are",
          "as", "from", "after", "over", "new", "says", "say", "its", "be", "has", "was", "will"}
 

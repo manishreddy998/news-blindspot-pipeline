@@ -32,9 +32,26 @@ def gdelt_raw(context: AssetExecutionContext) -> MaterializeResult:
     return MaterializeResult(metadata={k: MetadataValue.int(int(v)) for k, v in stats.items()})
 
 
-@asset(deps=[gdelt_raw], group_name="transform", description="dbt build: staging, stories, blindspots and tests.")
+@asset(deps=[gdelt_raw], group_name="transform", description="dbt seed and staging: clean events, mentions and article copies.")
+def dbt_staging(context: AssetExecutionContext) -> MaterializeResult:
+    _run(context, ["dbt", "seed", "--profiles-dir", "."], cwd=DBT_DIR)
+    out = _run(context, ["dbt", "build", "--select", "staging", "--profiles-dir", "."], cwd=DBT_DIR)
+    done = [line for line in out.splitlines() if "Done." in line]
+    return MaterializeResult(metadata={"dbt": MetadataValue.text(done[-1] if done else "ok")})
+
+
+@asset(deps=[dbt_staging], group_name="transform", description="Group articles into stories by headline similarity.")
+def headline_clusters(context: AssetExecutionContext) -> MaterializeResult:
+    from blindspot.stories.cluster import run
+
+    stats = run()
+    context.log.info(str(stats))
+    return MaterializeResult(metadata={k: MetadataValue.int(int(v)) for k, v in stats.items()})
+
+
+@asset(deps=[headline_clusters], group_name="transform", description="dbt build: stories, blindspots and tests.")
 def dbt_models(context: AssetExecutionContext) -> MaterializeResult:
-    out = _run(context, ["dbt", "build", "--profiles-dir", "."], cwd=DBT_DIR)
+    out = _run(context, ["dbt", "build", "--exclude", "staging", "--profiles-dir", "."], cwd=DBT_DIR)
     done = [line for line in out.splitlines() if "Done." in line]
     return MaterializeResult(metadata={"dbt": MetadataValue.text(done[-1] if done else "ok")})
 
@@ -62,5 +79,5 @@ every_15_minutes = ScheduleDefinition(
     if os.getenv("SCHEDULE_ON", "1") == "1" else DefaultScheduleStatus.STOPPED,
 )
 
-defs = Definitions(assets=[gdelt_raw, dbt_models, quality_check, story_summaries],
+defs = Definitions(assets=[gdelt_raw, dbt_staging, headline_clusters, dbt_models, quality_check, story_summaries],
                    jobs=[pipeline_job], schedules=[every_15_minutes])

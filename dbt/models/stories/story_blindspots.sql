@@ -29,6 +29,8 @@ shares as (
 select
     s.story_id,
     st.story_day,
+    st.headline,
+    st.grouped_by,
     st.actors,
     st.action_place,
     st.event_root_code,
@@ -42,7 +44,8 @@ select
     1 - s.left_share as right_share,
     -- 0 means an even split, 1 means only one side covered it.
     abs(2 * s.left_share - 1) as blindspot_score,
-    s.rated_articles >= {{ var('min_rated_articles') }}
+    st.grouped_by = 'headline'
+        and s.rated_articles >= {{ var('min_rated_articles') }}
         and s.sided_articles > 0
         and greatest(s.left_share, 1 - s.left_share) >= {{ var('blindspot_threshold') }} as is_blindspot,
     case
