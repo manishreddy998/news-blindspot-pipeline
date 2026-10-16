@@ -1,18 +1,21 @@
 version: 2
 
 seeds:
-  - name: outlet_bias
+  - name: partisan_audience_scores
     description: >
-      EXAMPLE DATA ONLY. A small hand made list so the models have something to
-      join on. These leans are rough placeholders, not taken from any rating
-      service, and must not be quoted as real ratings. Swap in a licensed source
-      (for example AllSides or Ad Fontes Media) and set rating_source to its name.
+      Partisan audience scores for about 19,000 web domains from Robertson et al. (2018),
+      "Auditing Partisan Audience Bias within Google Search", Proc. ACM HCI 2(CSCW) 148,
+      https://doi.org/10.1145/3274417. Data from Harvard Dataverse,
+      https://doi.org/10.7910/DVN/QAN5VX, released under CC0 1.0.
+      A score runs from -1 (shared only by registered Democrats on Twitter) to 1
+      (shared only by registered Republicans). It measures who shares an outlet,
+      not the slant of its writing. Rebuild with scripts/fetch_partisan_scores.py.
+    config:
+      column_types:
+        domain: "{{ 'string' if target.type == 'bigquery' else 'varchar' }}"
+        partisan_score: "{{ 'float64' if target.type == 'bigquery' else 'double' }}"
     columns:
       - name: domain
         tests: [unique, not_null]
-      - name: lean
-        tests:
-          - accepted_values:
-              arguments:
-                values: [left, center, right]
-      - name: rating_source
+      - name: partisan_score
+        tests: [not_null]
