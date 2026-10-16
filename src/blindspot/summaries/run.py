@@ -18,6 +18,7 @@ TOP_SQL = """
 select story_id, story_day, actors, action_place, unique_articles, rated_articles,
        left_articles, center_articles, right_articles, blindspot_score, is_blindspot, blindspot_for
 from {mart}.story_blindspots
+where grouped_by = 'headline'
 order by is_blindspot desc, unique_articles desc
 limit {top}
 """
