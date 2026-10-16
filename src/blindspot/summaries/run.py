@@ -11,55 +11,26 @@ from datetime import datetime, timezone
 
 from . import extractive
 from .evaluate import evaluate
+from blindspot.warehouse import Warehouse
 
 log = logging.getLogger("summaries")
 
 TOP_SQL = """
-select story_id, story_day, actors, action_place, unique_articles, rated_articles,
+select story_id, story_day, headline, actors, action_place, unique_articles, rated_articles,
        left_articles, center_articles, right_articles, blindspot_score, is_blindspot, blindspot_for
 from {mart}.story_blindspots
 where grouped_by = 'headline'
 order by is_blindspot desc, unique_articles desc
 limit {top}
 """
+# Every headline in each story, from the clustering step.
+HEADS_SQL = """
+select distinct sa.story_id, sm.headline
+from {mart}.story_articles sa
+join {mart}.story_map sm on sm.copy_key = sa.copy_key
+where sa.story_id in ({ids})
+"""
 URLS_SQL = "select story_id, article_url from {mart}.story_articles where story_id in ({ids})"
-
-
-class Warehouse:
-    def __init__(self):
-        self.bq = os.getenv("DBT_TARGET", "duckdb") == "bigquery"
-        if self.bq:
-            from google.cloud import bigquery
-
-            self.project = os.environ["GCP_PROJECT"]
-            self.client = bigquery.Client(project=self.project)
-            self.mart = f"`{self.project}.analytics`"
-        else:
-            import duckdb
-
-            self.con = duckdb.connect(os.getenv("DUCKDB_PATH", "data/blindspot.duckdb"))
-            self.mart = "main"
-
-    def rows(self, sql: str) -> list[dict]:
-        if self.bq:
-            return [dict(r.items()) for r in self.client.query(sql).result()]
-        cur = self.con.execute(sql)
-        cols = [d[0] for d in cur.description]
-        return [dict(zip(cols, r)) for r in cur.fetchall()]
-
-    def save(self, records: list[dict]):
-        if self.bq:
-            from google.cloud import bigquery
-
-            cfg = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE", autodetect=True)
-            self.client.load_table_from_json(records, f"{self.project}.analytics.story_summaries",
-                                             job_config=cfg).result()
-            return
-        self.con.execute("create or replace table story_summaries (story_id varchar, summary varchar, "
-                         "method varchar, eval_passed boolean, eval_detail varchar, created_at timestamp)")
-        self.con.executemany("insert into story_summaries values (?, ?, ?, ?, ?, ?)",
-                             [[r[k] for k in ("story_id", "summary", "method", "eval_passed",
-                                              "eval_detail", "created_at")] for r in records])
 
 
 def run(top: int, mode: str) -> dict:
@@ -71,12 +42,17 @@ def run(top: int, mode: str) -> dict:
     urls: dict[str, list[str]] = {}
     for r in wh.rows(URLS_SQL.format(mart=wh.mart, ids=ids)):
         urls.setdefault(r["story_id"], []).append(r["article_url"])
+    heads_by_story: dict[str, list[str]] = {}
+    for r in wh.rows(HEADS_SQL.format(mart=wh.mart, ids=ids)):
+        heads_by_story.setdefault(r["story_id"], []).append(r["headline"])
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc)
+    now = now.isoformat() if wh.bq else now
     records, stats = [], {"stories": len(stories), "vertex": 0, "extractive": 0, "eval_passed": 0}
     for s in stories:
         story_urls = sorted(urls.get(s["story_id"], []))
-        heads = [h for h in (extractive.slug_to_headline(u) for u in story_urls) if h]
+        heads = sorted(heads_by_story.get(s["story_id"], [])) or [
+            h for h in (extractive.slug_to_headline(u) for u in story_urls) if h]
         method, summary = "extractive", None
         if mode == "vertex":
             from . import vertex
@@ -86,7 +62,7 @@ def run(top: int, mode: str) -> dict:
             except Exception as exc:
                 log.warning("vertex failed, using extractive: %s", str(exc)[:200])
         if summary is None:
-            summary = extractive.summarize(s, story_urls)
+            summary = extractive.summarize(s, story_urls, centroid=s.get("headline"))
         result = evaluate(summary, s, heads)
         if not result["coherent_story"]:
             log.info("low coherence %.2f for %s: %s", result["coherence"], s["story_id"][:8], summary[:80])
@@ -95,7 +71,9 @@ def run(top: int, mode: str) -> dict:
         records.append({"story_id": s["story_id"], "summary": summary, "method": method,
                         "eval_passed": result["passed"], "eval_detail": json.dumps(result),
                         "created_at": now})
-    wh.save(records)
+    wh.replace_table("story_summaries", [("story_id", "STRING"), ("summary", "STRING"), ("method", "STRING"),
+                                         ("eval_passed", "BOOL"), ("eval_detail", "STRING"),
+                                         ("created_at", "TIMESTAMP")], records)
     return stats
 
 

@@ -42,8 +42,17 @@ def pick_headline(urls: list[str]) -> str | None:
     return max(set(heads), key=score)
 
 
-def summarize(story: dict, urls: list[str]) -> str:
-    head = pick_headline(urls) or f"{story['actors'] or 'Unnamed actors'} in {story['action_place'] or 'an unknown place'}"
+def tidy(headline: str) -> str:
+    """Slugs lose capitals and apostrophes. Put back the obvious ones."""
+    fixes = {"us": "US", "uk": "UK", "eu": "EU", "un": "UN", "gop": "GOP", "nato": "NATO", "fbi": "FBI",
+             "doj": "DOJ", "ai": "AI", "trump": "Trump", "trumps": "Trump's"}
+    text = " ".join(fixes.get(w.lower(), w) for w in headline.split())
+    return text[:1].upper() + text[1:]
+
+
+def summarize(story: dict, urls: list[str], centroid: str | None = None) -> str:
+    """centroid is the story's most central headline from clustering, when there is one."""
+    head = (tidy(centroid) if centroid else None) or pick_headline(urls) or f"{story['actors'] or 'Unnamed actors'} in {story['action_place'] or 'an unknown place'}"
     split = f"left {story['left_articles']}, center {story['center_articles']}, right {story['right_articles']}"
     text = (f"{head}. {story['unique_articles']} unique articles; rated outlets: {split}. "
             f"Place: {story['action_place'] or 'unknown'}.")
