@@ -33,3 +33,8 @@ def test_eval_catches_bad_output():
 
 def test_uuid_slugs_are_not_headlines():
     assert extractive.slug_to_headline("https://x.com/article/baf6c1d2-482a-4c3e-8d11-0a1b2c3d4e5f") is None
+
+
+def test_centroid_headline_leads_the_summary():
+    summary = extractive.summarize(STORY, URLS, centroid="judge limits doj access in omar case us")
+    assert summary.startswith("Judge limits DOJ access in omar case US.")
