@@ -16,3 +16,9 @@ sources:
       - name: raw_gdelt_mentions
         config:
           loaded_at_field: "{{ \"parse_timestamp('%Y%m%d%H%M%S', cast(MentionTimeDate as string))\" if target.type == 'bigquery' else \"strptime(cast(MentionTimeDate as varchar), '%Y%m%d%H%M%S')\" }}"
+
+  - name: clusters
+    # Written by python -m blindspot.stories.cluster, after staging and before the story models.
+    schema: "{{ 'analytics' if target.type == 'bigquery' else 'main' }}"
+    tables:
+      - name: story_map
