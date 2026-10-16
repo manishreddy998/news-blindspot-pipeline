@@ -9,3 +9,12 @@ models:
     columns:
       - name: story_id
         tests: [unique, not_null]
+  - name: outlet_bias
+    columns:
+      - name: domain
+        tests: [unique, not_null]
+      - name: lean
+        tests:
+          - accepted_values:
+              arguments:
+                values: [left, center, right]

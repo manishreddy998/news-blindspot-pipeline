@@ -34,8 +34,9 @@ def load():
     return stories, meta
 
 
-st.warning("**Example bias data.** Outlet leans in this demo are placeholders, not real ratings. "
-           "The flags show how the method works, not real media bias.", icon="⚠️")
+st.info("**Outlet lean** comes from partisan audience scores by Robertson et al. (2018), released "
+        "under CC0 on Harvard Dataverse. A score says who shares an outlet on Twitter, not how it writes, "
+        "and the data dates from 2017.")
 st.title("News blindspots")
 
 try:
