@@ -50,20 +50,20 @@ c1.metric("Stories", f"{meta.stories:,}")
 c2.metric("Blindspots flagged", int(meta.blindspots))
 c3.metric("Latest GDELT file", str(meta.last_file)[:12])
 
-min_rated = st.sidebar.slider("Min articles from rated outlets", 0, 30, 5)
+min_rated = st.sidebar.slider("Min articles from rated outlets", 0, 30, 4)
 only_flags = st.sidebar.checkbox("Only blindspots", value=False)
 view = stories[stories.rated_articles >= min_rated]
 if only_flags:
     view = view[view.is_blindspot]
 
 st.subheader("Blindspots")
-flags = stories[stories.is_blindspot].sort_values("rated_articles", ascending=False).head(10)
+flags = stories[stories.is_blindspot].sort_values(["dominant_share_low", "sided_articles"], ascending=False).head(10)
 for _, r in flags.iterrows():
     side = "the left" if r.blindspot_for == "left" else "the right"
     label = r.summary if isinstance(r.summary, str) else f"{r.actors or 'Unnamed'} in {r.action_place or 'unknown place'}"
     st.markdown(f"**{label}**  \n"
                 f"Blindspot for {side}: left {r.left_articles}, center {r.center_articles}, right {r.right_articles}"
-                f" · score {r.blindspot_score:.2f}")
+                f" · {r.dominant_share:.0%} one side (95% low end {r.dominant_share_low:.0%}, {r.confidence})")
 
 st.subheader("Coverage split for top stories")
 top = view.head(15).copy()
@@ -74,6 +74,6 @@ split.columns = ["left", "center", "right"]
 st.bar_chart(split, horizontal=True, color=["#3b6fd8", "#9a9a9a", "#d8433b"])
 
 st.subheader("All scored stories")
-cols = ["story_day", "actors", "action_place", "unique_articles", "rated_articles", "left_articles",
-        "center_articles", "right_articles", "blindspot_score", "is_blindspot", "blindspot_for", "summary"]
+cols = ["story_day", "headline", "actors", "action_place", "unique_articles", "rated_articles", "left_articles",
+        "center_articles", "right_articles", "blindspot_score", "dominant_share_low", "is_blindspot", "confidence", "blindspot_for", "summary"]
 st.dataframe(pd.DataFrame(view[cols]), use_container_width=True, hide_index=True)
