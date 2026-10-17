@@ -166,6 +166,13 @@ From a fresh run on the pinned window Oct 15, 11:15 AM ET to Oct 16, 11:00 AM ET
 ![Dagster assets](docs/images/dagster-assets.png)
 ![Dagster schedule](docs/images/dagster-schedule.png)
 
+## Final verdict
+The pipeline works end to end and is ready to build on.
+- **Reliable:** a fresh run from an empty database loads all 192 files with no rows rejected, and dbt passes 20 of 20.
+- **Reproducible:** reruns and BigQuery both give the same 71 flagged story ids as DuckDB.
+- **Useful signal:** headline clustering lifted summary coherence from 0.14 to 0.99 on the top 20 stories, and lean coverage went from about 1% to 42% of mentions.
+- **Not done yet:** the flags are only as good as the lean data. Audience scores from 2017 push many local and soft news stories into the list, so a hard news filter is the next thing to build before these flags would be shown to readers.
+
 ## Honest limits
 - **Audience lean is not content slant.** A score says who shared an outlet on Twitter in 2017. Some outlets move, and a few odd ones stand out: AP scores left (-0.33) and CNN scores center (-0.12).
 - **Flags lean toward local and soft news.** Many local radio and TV sites have right leaning audiences in this data. So stories like an Iowa pork tenderloin contest come out as a "blindspot for the left". That's what the audience data says, but it isn't the hard news gap a reader means by a blindspot.
@@ -215,3 +222,36 @@ DBT_TARGET=bigquery docker compose run --rm pipeline python -m blindspot.build
 2. Compare the audience scores with a newer source as one becomes openly available, and track drift per outlet.
 3. Turn on Gemini summaries once the Vertex AI API is enabled, and keep the same checks.
 4. Run the schedule in the cloud (Cloud Run jobs and Cloud Scheduler) with the dashboard reading from BigQuery.
+
+## Project structure
+```
+news-blindspot-pipeline/
+├── src/blindspot/
+│   ├── ingest/          GDELT loader, file manifest, DuckDB and BigQuery backends
+│   ├── stories/         TF-IDF headline clustering
+│   ├── quality/         final table checks that stop a bad run
+│   ├── summaries/       extractive and Vertex AI summaries, plus the eval
+│   ├── orchestration/   Dagster assets and the 15 minute schedule
+│   ├── build.py         dbt staging, clustering, then the story models
+│   └── warehouse.py     shared warehouse connection
+├── dbt/
+│   ├── models/staging/  clean events, mentions and syndicated copies
+│   ├── models/stories/  stories, outlet lean, coverage split and blindspots
+│   ├── seeds/           partisan audience scores (CC0)
+│   └── tests/           rule, range and row count tests
+├── dashboard/app.py     Streamlit dashboard
+├── scripts/             rebuilds the lean seed from the source
+├── tests/               pytest unit tests
+├── results/summary.md   full numbers from the pinned run
+├── docs/images/         dashboard and Dagster screenshots
+├── Dockerfile
+└── docker-compose.yml
+```
+
+## Author
+**Manish Reddy**, data engineer
+- Email: [manishreddyr998@gmail.com](mailto:manishreddyr998@gmail.com)
+- GitHub: [manishreddy998](https://github.com/manishreddy998)
+
+## License
+[MIT](LICENSE). The partisan audience scores are CC0 1.0 from Robertson et al. (2018).
