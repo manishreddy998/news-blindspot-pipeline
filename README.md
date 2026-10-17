@@ -2,12 +2,12 @@
 
 **A working data pipeline that finds news stories one side of the political spectrum is ignoring, refreshed every 15 minutes from public GDELT data.**
 
-## Intro
+## The problem
 When a big story breaks, outlets on the left and right often cover it very differently, and sometimes one side barely covers it at all. Those gaps are called blindspots. This project is a small, working pipeline that finds them in public news data, end to end: pull the data, group articles into stories, count coverage by outlet lean, and show the results on a dashboard.
 
 It's a prototype I built to understand the problem properly. Every number below comes from a real run, and the limits section says plainly what still falls short.
 
-## Objective
+## What it does
 For every news story in the last day, answer three questions:
 1. Who covered it, and how many unique articles were there?
 2. How did the coverage split between left, center and right outlets?
