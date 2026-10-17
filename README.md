@@ -1,11 +1,13 @@
 # news-blindspot-pipeline
 
-## Intro
+**A working data pipeline that finds news stories one side of the political spectrum is ignoring, refreshed every 15 minutes from public GDELT data.**
+
+## The problem
 When a big story breaks, outlets on the left and right often cover it very differently, and sometimes one side barely covers it at all. Those gaps are called blindspots. This project is a small, working pipeline that finds them in public news data, end to end: pull the data, group articles into stories, count coverage by outlet lean, and show the results on a dashboard.
 
 It's a prototype I built to understand the problem properly. Every number below comes from a real run, and the limits section says plainly what still falls short.
 
-## Objective
+## What it does
 For every news story in the last day, answer three questions:
 1. Who covered it, and how many unique articles were there?
 2. How did the coverage split between left, center and right outlets?
@@ -21,6 +23,42 @@ And keep the answers fresh every 15 minutes, with tests that stop bad numbers be
 It's free and public, and a day is roughly 120k events and 300k mentions from almost 5,000 outlets.
 
 Outlet lean comes from the **partisan audience scores** published by Robertson et al. (2018), see [Outlet lean](#outlet-lean) below.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    G[GDELT 2.0<br/>events and mentions<br/>every 15 min] --> L[load_gdelt<br/>Python loader]
+    L --> R[(Raw tables<br/>DuckDB or BigQuery)]
+    R --> S[dbt staging<br/>clean, dedupe, copies]
+    S --> C[Headline clustering<br/>TF-IDF in Python]
+    P[Partisan audience scores<br/>dbt seed] --> M
+    C --> M[dbt story models<br/>lean split and flags]
+    M --> T[dbt tests and<br/>quality check]
+    T --> Y[Story summaries]
+    Y --> D[Streamlit dashboard]
+    O{{Dagster schedule<br/>every 15 min}} -.-> L
+    O -.-> S
+    O -.-> C
+    O -.-> M
+    O -.-> T
+    O -.-> Y
+```
+
+If any step fails, the steps after it don't run, so bad numbers never reach the dashboard.
+
+## Stack
+| Layer | Tools |
+|---|---|
+| Language | Python 3.12 |
+| Warehouse | DuckDB locally, BigQuery in the cloud (same code and models) |
+| Transformations | dbt Core with dbt-duckdb and dbt-bigquery |
+| Story clustering | scikit-learn TF-IDF, SciPy connected components |
+| Orchestration | Dagster |
+| Dashboard | Streamlit, pandas |
+| Summaries | Extractive by default, optional Gemini on Vertex AI |
+| Testing | dbt tests, a Python quality check, pytest |
+| Runtime | Docker and Docker Compose |
 
 ## How we pull the data
 `python -m blindspot.ingest.load_gdelt --hours 24`
@@ -128,6 +166,13 @@ From a fresh run on the pinned window Oct 15, 11:15 AM ET to Oct 16, 11:00 AM ET
 ![Dagster assets](docs/images/dagster-assets.png)
 ![Dagster schedule](docs/images/dagster-schedule.png)
 
+## Final verdict
+The pipeline works end to end and is ready to build on.
+- **Reliable:** a fresh run from an empty database loads all 192 files with no rows rejected, and dbt passes 20 of 20.
+- **Reproducible:** reruns and BigQuery both give the same 71 flagged story ids as DuckDB.
+- **Useful signal:** headline clustering lifted summary coherence from 0.14 to 0.99 on the top 20 stories, and lean coverage went from about 1% to 42% of mentions.
+- **Not done yet:** the flags are only as good as the lean data. Audience scores from 2017 push many local and soft news stories into the list, so a hard news filter is the next thing to build before these flags would be shown to readers.
+
 ## Honest limits
 - **Audience lean is not content slant.** A score says who shared an outlet on Twitter in 2017. Some outlets move, and a few odd ones stand out: AP scores left (-0.33) and CNN scores center (-0.12).
 - **Flags lean toward local and soft news.** Many local radio and TV sites have right leaning audiences in this data. So stories like an Iowa pork tenderloin contest come out as a "blindspot for the left". That's what the audience data says, but it isn't the hard news gap a reader means by a blindspot.
@@ -177,3 +222,36 @@ DBT_TARGET=bigquery docker compose run --rm pipeline python -m blindspot.build
 2. Compare the audience scores with a newer source as one becomes openly available, and track drift per outlet.
 3. Turn on Gemini summaries once the Vertex AI API is enabled, and keep the same checks.
 4. Run the schedule in the cloud (Cloud Run jobs and Cloud Scheduler) with the dashboard reading from BigQuery.
+
+## Project structure
+```
+news-blindspot-pipeline/
+├── src/blindspot/
+│   ├── ingest/          GDELT loader, file manifest, DuckDB and BigQuery backends
+│   ├── stories/         TF-IDF headline clustering
+│   ├── quality/         final table checks that stop a bad run
+│   ├── summaries/       extractive and Vertex AI summaries, plus the eval
+│   ├── orchestration/   Dagster assets and the 15 minute schedule
+│   ├── build.py         dbt staging, clustering, then the story models
+│   └── warehouse.py     shared warehouse connection
+├── dbt/
+│   ├── models/staging/  clean events, mentions and syndicated copies
+│   ├── models/stories/  stories, outlet lean, coverage split and blindspots
+│   ├── seeds/           partisan audience scores (CC0)
+│   └── tests/           rule, range and row count tests
+├── dashboard/app.py     Streamlit dashboard
+├── scripts/             rebuilds the lean seed from the source
+├── tests/               pytest unit tests
+├── results/summary.md   full numbers from the pinned run
+├── docs/images/         dashboard and Dagster screenshots
+├── Dockerfile
+└── docker-compose.yml
+```
+
+## Author
+**Manish Reddy**, data engineer
+- Email: [manishreddyr998@gmail.com](mailto:manishreddyr998@gmail.com)
+- GitHub: [manishreddy998](https://github.com/manishreddy998)
+
+## License
+[MIT](LICENSE). The partisan audience scores are CC0 1.0 from Robertson et al. (2018).
