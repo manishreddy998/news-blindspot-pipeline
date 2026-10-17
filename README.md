@@ -252,6 +252,7 @@ news-blindspot-pipeline/
 **Manish Reddy**, data engineer
 - Email: [manishreddyr998@gmail.com](mailto:manishreddyr998@gmail.com)
 - GitHub: [manishreddy998](https://github.com/manishreddy998)
+- LinkedIn: [manish-re-50c02a719k](https://www.linkedin.com/in/manish-re-50c02a719k/)
 
 ## License
 [MIT](LICENSE). The partisan audience scores are CC0 1.0 from Robertson et al. (2018).
