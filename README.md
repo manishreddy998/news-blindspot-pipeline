@@ -1,5 +1,7 @@
 # news-blindspot-pipeline
 
+**A working data pipeline that finds news stories one side of the political spectrum is ignoring, refreshed every 15 minutes from public GDELT data.**
+
 ## Intro
 When a big story breaks, outlets on the left and right often cover it very differently, and sometimes one side barely covers it at all. Those gaps are called blindspots. This project is a small, working pipeline that finds them in public news data, end to end: pull the data, group articles into stories, count coverage by outlet lean, and show the results on a dashboard.
 
@@ -21,6 +23,42 @@ And keep the answers fresh every 15 minutes, with tests that stop bad numbers be
 It's free and public, and a day is roughly 120k events and 300k mentions from almost 5,000 outlets.
 
 Outlet lean comes from the **partisan audience scores** published by Robertson et al. (2018), see [Outlet lean](#outlet-lean) below.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    G[GDELT 2.0<br/>events and mentions<br/>every 15 min] --> L[load_gdelt<br/>Python loader]
+    L --> R[(Raw tables<br/>DuckDB or BigQuery)]
+    R --> S[dbt staging<br/>clean, dedupe, copies]
+    S --> C[Headline clustering<br/>TF-IDF in Python]
+    P[Partisan audience scores<br/>dbt seed] --> M
+    C --> M[dbt story models<br/>lean split and flags]
+    M --> T[dbt tests and<br/>quality check]
+    T --> Y[Story summaries]
+    Y --> D[Streamlit dashboard]
+    O{{Dagster schedule<br/>every 15 min}} -.-> L
+    O -.-> S
+    O -.-> C
+    O -.-> M
+    O -.-> T
+    O -.-> Y
+```
+
+If any step fails, the steps after it don't run, so bad numbers never reach the dashboard.
+
+## Stack
+| Layer | Tools |
+|---|---|
+| Language | Python 3.12 |
+| Warehouse | DuckDB locally, BigQuery in the cloud (same code and models) |
+| Transformations | dbt Core with dbt-duckdb and dbt-bigquery |
+| Story clustering | scikit-learn TF-IDF, SciPy connected components |
+| Orchestration | Dagster |
+| Dashboard | Streamlit, pandas |
+| Summaries | Extractive by default, optional Gemini on Vertex AI |
+| Testing | dbt tests, a Python quality check, pytest |
+| Runtime | Docker and Docker Compose |
 
 ## How we pull the data
 `python -m blindspot.ingest.load_gdelt --hours 24`
